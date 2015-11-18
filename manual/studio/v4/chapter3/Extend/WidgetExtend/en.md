@@ -274,7 +274,7 @@ Scripts of LuaCustomObject:
 
     [DisplayName("Sprite Extend")]
     [ModelExtension(2)]
-    [Catagory("Control_Custom", 2)]
+    [ControlGroup("Control_Custom", 2)]
     [EngineClassName("LuaCustom")]
     public class LuaCustomObject : SpriteObject
     {

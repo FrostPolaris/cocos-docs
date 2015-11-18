@@ -241,29 +241,31 @@
 
 &emsp;&emsp;編寫一個自訂控制項
 
-&emsp;&emsp;CustomEditor繼承了BaseEditor基類和ITypeEditor介面。NumberEditorWidget是一個有兩個TextBox的控制項(類似於ScaleValue類型的這個控制項)。
+&emsp;&emsp;CustomEditor是一個可以編輯ScaleValue類型的屬性編輯器，它繼承自BaseEditor，BaseEditor則繼承自IPropertyEditor介面。
+BaseEditor中已對IPropertyEditor介面進行了實現，但子類在繼承BaseEditor時，依然需要重寫其中的一些方法，其中必須要重寫的方法如下：
 
-&emsp;&emsp;ITypeEditor介面必須實現ResolveEditor方法，這個方法返回一個顯示在介面上的控制項，如果需要添加多個，則可以繼續添加Table之類的容器控制項，在容器控制項中自訂完所需內容後，返回容器控制項。
 
-&emsp;&emsp;如果要處理兩個TextBox的值變化，則需要添加下面兩個事件：
+            protected abstract Gtk.Widget OnCreateWidget();
+            protected abstract void void OnSetControl();
 
-   _widget.PointX += widget_PointX;
-   _widget.PointY += widget_PointY;
+&emsp;&emsp;Gtk.Widget OnCreateWidget()方法用於在屬性編輯器初始化的時候創建其對應的Gtk部件，例如CustomEditor就創建了一個包含了兩個輸入框的部件（NoUndoNumEntry是Gtk.Entry的子類，其中封裝了一些額外的邏輯）。
 
-&emsp;&emsp;PointX和PointY分別是兩個TextBox的事件。
+&emsp;&emsp;void OnSetControl()方法用於在屬性發生改變的時候同步刷新屬性面板上的Gtk部件。對於CustomEditor來說，這個方法的作用就是在屬性變更的時候，把最新的屬性值顯示在輸入框中。
 
-    private void widget_PointX(object sender, PointEvent e)
+&emsp;&emsp;CustomEditor中的兩個輸入框在其數值改為的時候會去更新對應屬性的值，這一賦值操作是通過BaseEditor中成員屬性PropertyItem來進行的。PropertyItem與當前屬性編輯器所對應的屬性綁定，通過它可以獲取或是設置屬性的數值。下面的代碼便是X值輸入框對其內容改變事件的回檔方法。
+
+	private void XEntryValueChangedHandler(object sender, EntryIntEventArgs e)
     {
-        _scaleValue.ScaleX = (float)e.PointX;
-        UpdatePropertyValue(_propertyItem.PropertyData, _scaleValue);
+        using (GetLock())
+        {
+            for (int i = 0; i < PropertyItem.Objects.Count; i++)
+            {
+                ScaleValue value = PropertyItem.Values[i] as ScaleValue;
+                value.ScaleX = e.Value;
+                PropertyItem.Values[i] = value;
+            }
+        }
     }
-
-&emsp;&emsp;首先對scaleValue進行賦值：
-            
-    scaleValue.ScaleX = (float)e.PointX;
-
-&emsp;&emsp;然後調用UpdatePropertyValue對渲染區進行更改，當渲染區資料變化時，則會觸發override void OnPropertyChanged(object sender,PropertyChangedEventArgs e)事件，如果要單獨處理事件，則可以在OnPropertyChanged中加上邏輯代碼。
-(原始程式碼在CustomEditor這個檔中)。
 
 &emsp;&emsp;2.其它
 
